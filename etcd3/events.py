@@ -1,9 +1,14 @@
 class Event(object):
-    def __init__(self, key, value, version):
-        self.key = key
-        self.value = value
-        self.version = version
-        self.type = 0
+    __impl = {}
+
+    def __init__(self, event):
+        self.key = event.kv.key
+        self.__event = event
+
+    def __getattr__(self, name):
+        if name.startswith('prev_'):
+            return getattr(self.__event.prev_kv, name[5:])
+        return getattr(self.__event.kv, name)
 
     def __str__(self):
         return '{type} key={key} value={value}'.format(type=self.__class__,
@@ -12,12 +17,17 @@ class Event(object):
 
 
 class PutEvent(Event):
-    def __init__(self, *args):
-        super(PutEvent, self).__init__(*args)
-        self.type = 'put'
+    pass
 
 
 class DeleteEvent(Event):
-    def __init__(self, *args):
-        super(PutEvent, self).__init__(*args)
-        self.type = 'delete'
+    pass
+
+
+__events_impl = {sc.__name__: sc for sc in Event.__subclasses__()}
+
+
+def new_event(event):
+    cls_name = event.EventType.DESCRIPTOR.values_by_number[event.type].name
+    cls_name = cls_name[0].upper() + cls_name[1:].lower() + 'Event'
+    return __events_impl[cls_name](event)
