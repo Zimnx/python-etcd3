@@ -1,6 +1,4 @@
 class Event(object):
-    __impl = {}
-
     def __init__(self, event):
         self.key = event.kv.key
         self.__event = event
@@ -24,10 +22,18 @@ class DeleteEvent(Event):
     pass
 
 
-__events_impl = {sc.__name__: sc for sc in Event.__subclasses__()}
+event_classes = {
+    'PUT': PutEvent,
+    'DELETE': DeleteEvent
+}
 
 
 def new_event(event):
-    cls_name = event.EventType.DESCRIPTOR.values_by_number[event.type].name
-    cls_name = cls_name[0].upper() + cls_name[1:].lower() + 'Event'
-    return __events_impl[cls_name](event)
+    """
+    Wrap a raw gRPC event in a friendlier containing class.
+
+    This picks the appropriate class from one of PutEvent or DeleteEvent and
+    returns a new instance.
+    """
+    op_name = event.EventType.DESCRIPTOR.values_by_number[event.type].name
+    return event_classes[op_name](event)
